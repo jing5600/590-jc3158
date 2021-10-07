@@ -1,63 +1,35 @@
-#--------------------------------
-# UNIVARIABLE REGRESSION EXAMPLE
-#--------------------------------
+
+
 
 import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import json
 
-#------------------------
-#CODE PARAMETERS
-#------------------------
 
-#USER PARAMETERS
-IPLOT=True
-I_NORMALIZE=True;
-model_type = 'ANN'
+#MISC PARAMETERS
+IPLOT		=	True
+I_NORMALIZE =	True;
+# model_type 	=	"linear";  
+# model_type 	=	"logistic";  	 
+model_type 	=	"ANN";  		
 
+#OPTIMIZATION PARAM
+PARADIGM 	=	'batch'
+algo 		=	"MOM"	#GD OR MOM
+LR 			=	0.1  	#LEARNING RATE
+dx 			=	0.0001	#STEP SIZE FOR FINITE DIFFERENCE
+max_iter 	=	2000	#MAX NUMBER OF ITERATION
+tol 		= 	10**-10	#EXIT AFTER CHANGE IN LOSS IS LESS THAN THIS 
+max_rand_wb	=	1.0 	#MAX FOR RANDOM INITIAL GUESS
+GAMMA_L1	=	0.0		#L1 REGULARIZATION CONSTANT
+GAMMA_L2	=	0.01	#L2 REGULARIZATION CONSTANT
+alpha		=	0.25	#MOMENTUM PARAMETER
+#ANN PARAM
+layers		=	['s',5,5,1] #FIRST NUMBER OVERWRITTEN LATER BY INPUT SHAPE
+activation	=	"TANH"	#SIGMOID OR TAHN
 
-PARADIGM='mini_batch'
-dx=0.0001			#STEP SIZE FOR FINITE DIFFERENCE
-max_iter=5000		#MAX NUMBER OF ITERATION
-tol=10**-10			#EXIT AFTER CHANGE IN F IS LESS THAN THIS 
-alpha=0.25  			#EXPONENTIAL DECAY FACTOR FOR MOMENTUM ALGO
-algo='MOM'  
-
-LR=0.01  #LEARNING RATE 
-layers = [-1,5,5,5,1]
-max_rand_wb = 1.0
-GAMMA_L1 = 0.0
-GAMMA_L2 = 0.0001   
-
-NFIT=0
-for i in range(1,len(layers)):
-    NFIT = NFIT + layers[i-1]*layers[i]+layers[i]
-
-print('NFIT : ',NFIT)
-
-
-#TAKES A LONG VECTOR W OF WEIGHTS AND BIAS AND RETURNS 
-#WEIGHT AND BIAS SUBMATRICES
-def extract_submatrices(WB):
-	submatrices=[]; K=0
-	for i in range(0,len(layers)-1):
-		#FORM RELEVANT SUB MATRIX FOR LAYER-N
-		Nrow=layers[i+1]; Ncol=layers[i] #+1
-		w=np.array(WB[K:K+Nrow*Ncol].reshape(Ncol,Nrow).T) #unpack/ W 
-		K=K+Nrow*Ncol; #print i,k0,K
-		Nrow=layers[i+1]; Ncol=1; #+1
-		b=np.transpose(np.array([WB[K:K+Nrow*Ncol]])) #unpack/ W 
-		K=K+Nrow*Ncol; #print i,k0,K
-		submatrices.append(w); submatrices.append(b)
-		print(w.shape,b.shape)
-	print(submatrices)
-	return submatrices
 #SAVE HISTORY FOR PLOTTING AT THE END
-
-
-
-
 epoch=1; epochs=[]; loss_train=[];  loss_val=[]
 
 #------------------------
@@ -111,42 +83,11 @@ for i in range(0,len(x)):
 X=np.array(xtmp); Y=np.array(ytmp)
 NFIT=X.shape[1]+1  		#plus one for the bias term
 
-
-#PARTITION DATA
-fraction_train=0.8
-indices = np.random.permutation(x.shape[0])
-CUT=int(fraction_train*x.shape[0]); #print(CUT,x.shape,indices.shape)
-training_idx, test_idx = indices[:CUT], indices[CUT:]
-x_train, y_train =  x[training_idx,:], y[training_idx,:]
-x_val,   y_val   =  x[test_idx,:], y[test_idx,:]
-
-#NORMALIZE DATA
-# print(np.mean(x_train,axis=0),np.std(x_train,axis=0))
-x_mean=np.mean(x,axis=0); x_std=np.std(x,axis=0)
-y_mean=np.mean(y,axis=0); y_std=np.std(y,axis=0)
-x_train=(x_train-x_mean)/x_std
-x_val=(x_val-x_mean)/x_std
-y_train=(y_train-y_mean)/y_std
-y_val=(y_val-y_mean)/y_std
-
-
-# # #PLOT INITIAL DATA
-iplot=False
-if(iplot):
-    fig, ax = plt.subplots()
-    FS=18   #FONT SIZE
-
-    for indx in range(0,x_train.shape[1]):
-        plt.plot(x_train[:,indx],y_train,'o')
-        plt.plot(x_val[:,indx],y_val,'o')
-        plt.xlabel(x_keys[indx], fontsize=FS)
-        plt.ylabel(y_keys[0], fontsize=FS)
-        plt.show(); plt.clf()
-
-
-
 #SIGMOID
 def S(x): return 1.0/(1.0+np.exp(-x))
+
+##AN
+def T(x): return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
 
 print('--------INPUT INFO-----------')
 print("X shape:",X.shape); print("Y shape:",Y.shape,'\n')
@@ -183,17 +124,33 @@ print("train_idx shape:",train_idx.shape)
 print("val_idx shape:"  ,val_idx.shape)
 print("test_idx shape:" ,test_idx.shape)
 
-#------------------------
-#MODEL
-#------------------------
-def model(x,p):
-	if(model_type=="linear" or model_type=="logistic" or model_type=="ANN"):   
-		out=p[0]+np.matmul(x,p[1:].reshape(NFIT-1,1))
-		if(model_type=="logistic"): out=S(out)
-		return  out  
+
+#TAKES A LONG VECTOR W OF WEIGHTS AND BIAS AND RETURNS 
+#WEIGHT AND BIAS SUBMATRICES
+def extract_submatrices(WB):
+	submatrices=[]; K=0
+	for i in range(0,len(layers)-1):
+		#FORM RELEVANT SUB MATRIX FOR LAYER-N
+		Nrow=layers[i+1]; Ncol=layers[i] #+1
+		w=np.array(WB[K:K+Nrow*Ncol].reshape(Ncol,Nrow).T) #unpack/ W 
+		K=K+Nrow*Ncol; #print i,k0,K
+		Nrow=layers[i+1]; Ncol=1; #+1
+		b=np.transpose(np.array([WB[K:K+Nrow*Ncol]])) #unpack/ W 
+		K=K+Nrow*Ncol; #print i,k0,K
+		submatrices.append(w); submatrices.append(b)
+		#print(w.shape,b.shape)
+	return submatrices
 
 
-#FUNCTION TO MAKE VARIOUS PREDICTIONS FOR GIVEN PARAMETERIZATION
+if(model_type=="ANN"):
+	layers[0]		=	 X.shape[1]  	#OVERWRITE WITH INPUT SIZE
+
+	#CALCULATE NUMBER OF FITTING PARAMETERS FOR SPECIFIED NN 
+	NFIT=0; 
+	for i in range(1,len(layers)):  
+		NFIT=NFIT+layers[i-1]*layers[i]+layers[i]
+	print("NFIT		:	",NFIT)
+
 def predict(p):
 	global YPRED_T,YPRED_V,YPRED_TEST,MSE_T,MSE_V
 	YPRED_T=model(X[train_idx],p)
@@ -202,13 +159,52 @@ def predict(p):
 	MSE_T=np.mean((YPRED_T-Y[train_idx])**2.0)
 	MSE_V=np.mean((YPRED_V-Y[val_idx])**2.0)
 
-#------------------------
-#LOSS FUNCTION
-#------------------------
+
+def model(x,p):
+	if(model_type=="linear" or model_type=="logistic" ):   
+		out=p[0]+np.matmul(x,p[1:].reshape(NFIT-1,1))
+		if(model_type=="logistic"): out=S(out)
+		return  out  
+
+	if(model_type=="ANN"):
+		submatrices=extract_submatrices(p)
+		return  NN_eval(x,submatrices)
+
+def NN_eval(x,mat):
+    out=[i for i in range(len(x))]
+    #print(mat[5],len(x))
+    for i in range(len(x)):
+       # print(i)
+        for j in range(len(mat)):
+            #print(j,x[j],len(y),len(mat),len(x))
+            
+            y=(np.dot(mat[j*2],x[j].reshape(5,1))+mat[j*2+1])
+            
+            if len(y)==1:
+                break
+            
+        out[i]=y
+    #print(len(out))
+    return out
+    
+    
+    
+
+    
+    # p=[x,x,x,x]
+    # for i in range(len(p)//2):
+    #     p[i]=
+    #     print(p[0])
+
+
 def loss(p,index_2_use):
 	errors=model(X[index_2_use],p)-Y[index_2_use]  #VECTOR OF ERRORS
-	training_loss=np.mean(errors**2.0)				#MSE
-	return training_loss
+	out=np.mean(errors**2.0)				#MSE
+	if(GAMMA_L1!=0.0):
+		out=out+GAMMA_L1*np.sum(np.absolute(p))
+	if(GAMMA_L2!=0.0):
+		out=out+GAMMA_L2*np.sum(p**2.0)
+	return out
 
 #------------------------
 #MINIMIZER FUNCTION
@@ -314,78 +310,13 @@ def minimizer(f,xi):
 #------------------------
 
 #RANDOM INITIAL GUESS FOR FITTING PARAMETERS
-#po=np.random.uniform(0.25,1.,size=NFIT)
-#RANDOM INITIAL GUESS
 po=np.random.uniform(-max_rand_wb,max_rand_wb,size=NFIT)
-print(po)
-# print()
 
-
-po = extract_submatrices(po)
-
-p_final = []
 #TRAIN MODEL USING SCIPY MINIMIZ 
-for i in range(0,len(po)):
-    p_final[i]=minimizer(loss,po[i])	
-#p_final=minimizer(loss,po)		
+p_final=minimizer(loss,po)		
 print("OPTIMAL PARAM:",p_final)
 predict(p_final)
 
-
-
-#UN-NORMALIZE DATA (CONVERT BACK TO ORIGINAL UNITS)
-x_train=x_std*x_train+x_mean 
-x_val=x_std*x_val+x_mean 
-y_train=y_std*y_train+y_mean 
-y_val=y_std*y_val+y_mean 
-yp=y_std*yp+y_mean 
-yp_val=y_std*yp_val+y_mean 
-
-# print(input_shape,x_train.shape,yp.shape,y_train.shape)
-
-# #PLOT INITIAL DATA
-iplot=True
-if(iplot):
-    FS=18   #FONT SIZE
-
-    #PARITY PLOT
-    plt.plot(yp,yp,'-')
-    plt.plot(yp,y_train,'o')
-    plt.xlabel("y (predicted)", fontsize=FS)
-    plt.ylabel("y (data)", fontsize=FS)
-    plt.show()
-    plt.clf()
-
-    #FEATURE DEPENDENCE
-    for indx in range(0,x_train.shape[1]):
-        #TRAINING
-        plt.plot(x_train[:,indx],y_train,'ro')
-        plt.plot(x_train[:,indx],yp,'bx')
-        plt.xlabel(x_keys[indx], fontsize=FS)
-        plt.ylabel(y_keys[0], fontsize=FS)
-        plt.show()
-        plt.clf()
-
-        plt.plot(x_val[:,indx],y_val,'ro')
-        plt.plot(x_val[:,indx],yp_val,'bx')
-        plt.xlabel(x_keys[indx], fontsize=FS)
-        plt.ylabel(y_keys[0], fontsize=FS)
-        plt.show()
-        plt.clf()
-
-    # PLOTTING THE TRAINING AND VALIDATION LOSS 
-    history_dict = history.history
-    loss_values = history_dict["loss"]
-    val_loss_values = history_dict["val_loss"]
-    epochs = range(1, len(loss_values) + 1)
-    plt.plot(epochs, loss_values, "bo", label="Training loss")
-    plt.plot(epochs, val_loss_values, "b", label="Validation loss")
-    plt.title("Training and validation loss")
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-    plt.legend()
-    plt.show()
-# exit()
 #------------------------
 #GENERATE PLOTS
 #------------------------
@@ -437,23 +368,3 @@ if(IPLOT):
 		i=i+1 
 
 	plot_2()
-
-
-
-# #------------------------
-# #DOUBLE CHECK PART-1 OF HW2.1
-# #------------------------
-
-# x=np.array([[3],[1],[4]])
-# y=np.array([[2,5,1]])
-
-# A=np.array([[4,5,2],[3,1,5],[6,4,3]])
-# B=np.array([[3,5],[5,2],[1,4]])
-# print(x.shape,y.shape,A.shape,B.shape)
-# print(np.matmul(x.T,x))
-# print(np.matmul(y,x))
-# print(np.matmul(x,y))
-# print(np.matmul(A,x))
-# print(np.matmul(A,B))
-# print(B.reshape(6,1))
-# print(B.reshape(1,6))
