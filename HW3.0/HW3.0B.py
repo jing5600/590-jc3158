@@ -178,7 +178,7 @@ def NN_eval(x,mat):
         for j in range(len(mat)):
             #print(j,x[j],len(y),len(mat),len(x))
             
-            y=(np.dot(mat[j*2],x[j].reshape(5,1))+mat[j*2+1])
+            y=T(np.dot(mat[j*2],x[j].reshape(5,1))+mat[j*2+1])
             
             if len(y)==1:
                 break
