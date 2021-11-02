@@ -1,0 +1,4 @@
+I use the simpleRNN layer to processes batches of sequences.
+What's more , I also include L2 regularization and do K=1 validations to achieve my goal.
+Finally, as the Training and validation loss shows , the training loss decreases while validation loss does not.
+And we can tell from Training and validation accuracy that the training acc increases.
