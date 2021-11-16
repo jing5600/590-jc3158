@@ -100,7 +100,8 @@ if(DATA=="CIFAR"):
 
 #COMPILE
 autoencoder = keras.Model(input_img, decoded)
-autoencoder.compile(optimizer='adam', loss='binary_crossentropy');
+autoencoder.compile(optimizer='adam', loss='categorical_crossentropy',
+metrics=['accuracy']);
 autoencoder.summary()
 
 #TRAIN
@@ -116,7 +117,10 @@ epochs = range(1, len(history.history['loss']) + 1)
 plt.figure()
 plt.plot(epochs, history.history['loss'], 'bo', label='Training loss')
 plt.plot(epochs, history.history['val_loss'], 'b', label='Validation loss')
-
+plt.legend()
+plt.figure()
+plt.plot(epochs, history.history['accuracy'], 'bo', label='Training accuracy')
+plt.plot(epochs, history.history['val_accuracy'], 'b', label='Validation accuracy')
 plt.legend()
 
 autoencoder.save("my_model1.h5")
