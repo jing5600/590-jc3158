@@ -20,7 +20,7 @@ import numpy as np
 
 #USER PARAM
 INJECT_NOISE    =   False
-EPOCHS          =   35
+EPOCHS          =   15
 NKEEP           =   2500        #DOWNSIZE DATASET
 BATCH_SIZE      =   128
 DATA            =   "MNIST"
@@ -100,7 +100,7 @@ if(DATA=="CIFAR"):
 
 #COMPILE
 autoencoder = keras.Model(input_img, decoded)
-autoencoder.compile(optimizer='adam', loss='categorical_crossentropy',
+autoencoder.compile(optimizer='adam', loss='binary_crossentropy',
 metrics=['accuracy']);
 autoencoder.summary()
 
@@ -147,3 +147,46 @@ for i in range(1, n + 1):
     ax.get_yaxis().set_visible(False)
 plt.show()
 
+import tensorflow as tf
+import keras
+
+reconstructions = autoencoder.predict(x_train)
+train_loss = tf.keras.losses.mae(reconstructions, x_train)
+
+plt.hist(train_loss[None,:], bins=50)
+plt.xlabel("Train loss")
+plt.ylabel("No of examples")
+plt.show()
+
+threshold = np.mean(train_loss) + np.std(train_loss)
+
+from sklearn.metrics import accuracy_score, precision_score, recall_score
+
+def predict(model, data, threshold):
+  reconstructions = model(data)
+  loss = tf.keras.losses.mae(reconstructions, data)
+  return tf.math.less(loss, threshold)
+
+def print_stats(predictions, labels):
+  print("Accuracy = {}".format(accuracy_score(labels, predictions)))
+  print("Precision = {}".format(precision_score(labels, predictions)))
+  print("Recall = {}".format(recall_score(labels, predictions)))
+  
+preds = predict(autoencoder, x_test, threshold)
+
+preds=preds.numpy()
+
+num_abnorm = 0
+
+preds = np.array(preds, dtype= int)
+
+preds = list(preds)
+for i in range(len(preds)):
+    if preds[i] == 0:
+        num_abnorm = num_abnorm +1
+
+print(num_abnorm)
+
+fraction  = num_abnorm/len(preds)
+
+print(fraction)
